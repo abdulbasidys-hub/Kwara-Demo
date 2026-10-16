@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link, NavLink, Outlet, useLocation } from 'react-router-dom';
 import { ArrowLeftRight, GraduationCap, Menu, X } from 'lucide-react';
 import { noticesFor, useApp } from '../context/AppContext';
@@ -6,10 +6,32 @@ import { NAV } from '../data/nav';
 import { can, ROLES } from '../data/roles';
 import { Avatar } from './ui';
 
+// Copies each table's column headings onto its cells so rows can be shown as cards on phones
+function labelTables(root) {
+  root.querySelectorAll('table.table').forEach((table) => {
+    const heads = [...table.querySelectorAll('thead th')].map((th) => th.textContent.trim());
+    table.querySelectorAll('tbody tr').forEach((tr) =>
+      [...tr.children].forEach((td, i) => {
+        if (heads[i] && td.getAttribute('data-label') !== heads[i]) td.setAttribute('data-label', heads[i]);
+      }),
+    );
+  });
+}
+
 export default function Layout() {
   const { user, state } = useApp();
   const [open, setOpen] = useState(false);
   const location = useLocation();
+  const contentRef = useRef(null);
+
+  useEffect(() => {
+    const el = contentRef.current;
+    if (!el) return;
+    labelTables(el);
+    const observer = new MutationObserver(() => labelTables(el));
+    observer.observe(el, { childList: true, subtree: true });
+    return () => observer.disconnect();
+  }, []);
 
   useEffect(() => {
     setOpen(false);
@@ -91,7 +113,7 @@ export default function Layout() {
             </Link>
           </div>
         </header>
-        <main className="content">
+        <main className="content" ref={contentRef}>
           <Outlet />
         </main>
       </div>
